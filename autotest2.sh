@@ -1,6 +1,6 @@
 for num2 in {0..999}
 do
-    for num1 in {-1..9}
+    for num1 in 2
     do
         for num3 in {0..6}
         do
