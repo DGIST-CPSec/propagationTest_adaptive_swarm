@@ -29,10 +29,10 @@ def move_obstacles(obstacles, params):
 
 class Params:
     def __init__(self):
-        self.animate_rrt = 0 # show RRT construction, set 0 to reduce time of the RRT algorithm
+        self.animate_rrt = 1 # show RRT construction, set 0 to reduce time of the RRT algorithm
         self.visualize = 1 # show robots movement
         self.postprocessing = 1 # process and visualize the simulated experiment data after the simulation
-        self.savedata = 1 # save postprocessing metrics to the XLS-file
+        self.savedata = 0 # save postprocessing metrics to the XLS-file
         self.maxiters = 500 # max number of samples to build the RRT
         self.goal_prob = 0.05 # with probability goal_prob, sample the goal
         self.minDistGoal = 0.25 # [m], min distance os samples from goal to add goal node to the RRT
@@ -46,6 +46,7 @@ class Params:
         self.num_robots = 9 # number of robots in the formation
         self.interrobots_dist = 0.3 # [m], distance between robots in default formation
         self.max_sp_dist = 0.2 * self.drone_vel# * np.sqrt(self.num_robots) # [m], maximum distance between current robot's pose and the sp from global planner
+        
 
 class Robot:
     def __init__(self, id):
@@ -84,11 +85,9 @@ class Robot:
         if attacked:
             if what_noise == 'standard':
                 self.sp += np.random.normal(mean_noise, stddev_noise, size=2)
-            if what_noise == 'sin' and (tick % 30 <= 10):
-                sin_noise_x = noise_amplitude * np.sin(noise_frequency * tick)
-                sin_noise_y = noise_amplitude * np.sin(noise_frequency * tick + np.pi/2)
-                # TODO: x,y noise difference should be from random or input value
-                self.sp += np.array([sin_noise_x, sin_noise_y])
+            if what_noise == 'sin':
+                sin_noise = noise_amplitude * np.sin(noise_frequency * tick)
+                self.sp += np.array([sin_noise, sin_noise])
             if what_noise == 'brownian':
                 self.brown_noise += brown_noise_amp * np.random.randn(2)
                 self.sp += self.brown_noise
@@ -106,18 +105,18 @@ def visualize2D():
     plt.gca().add_patch( Polygon(robots_poses, color='yellow') )
     plt.plot(centroid[0], centroid[1], '*', color='b', markersize=10, label='Centroid position')
     plt.plot(robot1.route[:,0], robot1.route[:,1], linewidth=2, color='green', label="Leader's path", zorder=10)
-    for robot in robots[1:]: plt.plot(robot.route[:,0], robot.route[:,1], '--', linewidth=2, color='green', zorder=10)
+    # for robot in robots[1:]: plt.plot(robot.route[:,0], robot.route[:,1], '--', linewidth=2, color='green', zorder=10)
     plt.plot(P[:,0], P[:,1], linewidth=3, color='orange', label='Global planner path')
-    plt.plot(traj_global[sp_ind,0], traj_global[sp_ind,1], 'X', color='blue', markersize=7, label='Global planner setpoint')
-    plt.plot(xy_start[0],xy_start[1],'X',color='red', markersize=20, label='start')
-    plt.plot(xy_goal[0], xy_goal[1],'X',color='green', markersize=20, label='goal')
+    plt.plot(traj_global[sp_ind,0], traj_global[sp_ind,1], 'ro', color='blue', markersize=7, label='Global planner setpoint')
+    plt.plot(xy_start[0],xy_start[1],'bo',color='red', markersize=20, label='start')
+    plt.plot(xy_goal[0], xy_goal[1],'bo',color='green', markersize=20, label='goal')
     plt.legend()
 
 # Initialization
 init_fonts(small=12, medium=16, big=26)
 params = Params()
 xy_start = np.array([1.2, 1.0])
-xy_goal =  np.array([-2.2, -2.2])
+xy_goal =  np.array([1.5, -1.4])
 # xy_goal =  np.array([1.3, 1.0])
 
 # Obstacles map construction
@@ -136,9 +135,9 @@ obstacles = [
               np.array([[2.47, -2.47], [2.5, -2.47], [2.5, 2.47], [2.47, 2.47]]), # comment this for better 3D visualization
 
               # moving obstacle
-              np.array([[-2.3, 2.0], [-2.1, 2.0], [-2.1, 2.2], [-2.3, 2.2]]),
+              np.array([[-2.3, 2.0], [-2.2, 2.0], [-2.2, 2.1], [-2.3, 2.1]]),
               np.array([[2.3, -2.3], [2.4, -2.3], [2.4, -2.2], [2.3, -2.2]]),
-              np.array([[0.0, -2.3], [0.2, -2.3], [0.2, -2.2], [0.0, -2.2]]),
+              np.array([[0.0, -2.3], [0.1, -2.3], [0.1, -2.2], [0.0, -2.2]]),
             ]
 """" Narrow passage """
 # passage_width = 0.3
@@ -147,11 +146,6 @@ obstacles = [
 #             # narrow passage
 #               np.array([[-2.5, -0.5], [-passage_location-passage_width/2., -0.5], [-passage_location-passage_width/2., 0.5], [-2.5, 0.5]]),
 #               np.array([[-passage_location+passage_width/2., -0.5], [2.5, -0.5], [2.5, 0.5], [-passage_location+passage_width/2., 0.5]]),
-
-#             # moving obstacle
-#               np.array([[-2.3, 2.0], [-2.1, 2.0], [-2.1, 2.2], [-2.3, 2.2]]),
-#               np.array([[2.3, -1.3], [2.4, -1.3], [2.4, -1.2], [2.3, -1.2]]),
-#               np.array([[0.0, -1.3], [0.2, -1.3], [0.2, -1.2], [0.0, -1.2]]),
 #             ]
 # obstacles = []
 
@@ -160,37 +154,12 @@ for i in range(params.num_robots):
     robots.append(Robot(i+1))
 robot1 = robots[0]; robot1.leader=True
 
-def is_point_in_obstacle(point, obstacle):
-    """
-    This function checks if the point is inside the obstacle
-    """
-    x = point[0]; y = point[1]
-    x1 = obstacle[0,0]; y1 = obstacle[0,1]
-    x2 = obstacle[1,0]; y2 = obstacle[1,1]
-    x3 = obstacle[2,0]; y3 = obstacle[2,1]
-    x4 = obstacle[3,0]; y4 = obstacle[3,1]
-    if x1<=x<=x2 and y1<=y<=y4: return True
-    else: return False
-
-def check_collision(drone_positions, obstacles):
-    """
-    This function checks if the drone's position is inside the obstacle. 
-    If the drone is in the obstacle range, it returns True, otherwise False.
-    Later, we will collect the count of "crashes" to estimate the performance of the algorithm.
-    """
-    for drone in drone_positions:
-        for obstacle in obstacles:
-            if is_point_in_obstacle(drone, obstacle):
-                return True
-    return False
-
 
 # Metrics to measure (for postprocessing)
 class Metrics:
     def __init__(self):
         self.mean_dists_array = []
         self.max_dists_array = []
-        self.min_dists_array = []
         self.centroid_path = [np.array([0,0])]
         self.centroid_path_length = 0
         self.robots = []
@@ -200,7 +169,7 @@ class Metrics:
         self.cpu_usage_array = [] # [%]
         self.memory_usage_array = [] # [MiB]
 
-        self.folder_to_save = './data/'
+        self.folder_to_save = '/home/rus/Desktop/'
 
 metrics = Metrics()
 
@@ -209,7 +178,7 @@ mean_noise = 0.0  # 노이즈의 평균
 stddev_noise = 0.1  # 노이즈의 표준 편차
 
 #sin
-noise_amplitude = 0.1  # 노이즈의 진폭
+noise_amplitude = 0.01  # 노이즈의 진폭
 noise_frequency = 0.5  # 노이즈의 주파수
 
 #brownian
@@ -217,21 +186,19 @@ brown_noise_amp = 0.01
 
 attack_leader = False
 follower_selection = 2
-attack_follower = False
+attack_follower = True
 
 noise = ['standard', 'sin', 'brownian']
 what_noise = noise[1]
 
+
+
 # Layered Motion Planning: RRT (global) + Potential Field (local)
 if __name__ == '__main__':
-    # collision counter
-    collision_count = 0
-    centroid_low_stability = 0
-
     fig2D = plt.figure(figsize=(10,10))
     draw_map(obstacles)
-    plt.plot(xy_start[0],xy_start[1],'o',color='red', markersize=20, label='start')
-    plt.plot(xy_goal[0], xy_goal[1],'o',color='green', markersize=20, label='goal')
+    plt.plot(xy_start[0],xy_start[1],'bo',color='red', markersize=20, label='start')
+    plt.plot(xy_goal[0], xy_goal[1],'bo',color='green', markersize=20, label='goal')
 
     P_long = rrt_path(obstacles, xy_start, xy_goal, params)
     print('Path Shortenning...')
@@ -240,7 +207,7 @@ if __name__ == '__main__':
     traj_global = waypts2setpts(P, params)
     P = np.vstack([P, xy_start])
     plt.plot(P[:,0], P[:,1], linewidth=3, color='orange', label='Global planner path')
-    # plt.pause(0.5)
+    plt.pause(0.5)
 
     sp_ind = 0
     robot1.route = np.array([traj_global[0,:]])
@@ -260,7 +227,6 @@ if __name__ == '__main__':
         dist_to_goal = norm(robot1.sp - xy_goal)
         if dist_to_goal < params.goal_tolerance: # [m]
             print('Goal is reached')
-            plt.savefig('./resultimgs/'+str(time.time())+'.png')
             break
         if len(obstacles)>2: obstacles = move_obstacles(obstacles, params) # change poses of some obstacles on the map
 
@@ -285,23 +251,10 @@ if __name__ == '__main__':
                 robots[p+1].local_planner(obstacles1, params, tick, what_noise)
             followers_sp[p] = robots[p+1].sp
         tick += 1
-        
-        # check collision
-        drones_poses = [robot1.sp] + followers_sp
-        if check_collision(drones_poses, obstacles):
-            # print('Collision!')
-            collision_count += 1
 
         # centroid pose:
         centroid = 0
         for robot in robots: centroid += robot.sp / len(robots)
-        # compare if centroid's acceleration is too fast
-        accel = norm(centroid - metrics.centroid_path[-1])
-        # print("Centroid acceleration: ", accel)
-        if sp_ind > 0:
-            if norm(centroid - metrics.centroid_path[-1]) > 0.04:
-                # print('Centroid acceleration is too fast!')
-                centroid_low_stability += 1
         metrics.centroid_path = np.vstack([metrics.centroid_path, centroid])
         # dists to robots from the centroid:
         dists = []
@@ -310,7 +263,6 @@ if __name__ == '__main__':
         # Formation size estimation
         metrics.mean_dists_array.append(np.mean(dists)) # Formation mean Radius
         metrics.max_dists_array.append(np.max(dists)) # Formation max Radius
-        metrics.min_dists_array.append(np.min(dists)) # Formation min Radius
 
         # Algorithm performance (CPU and memory usage)
         metrics.cpu_usage_array.append( cpu_usage() )
@@ -324,12 +276,10 @@ if __name__ == '__main__':
             visualize2D()        
 
             plt.draw()
-            # plt.pause(0.01)
+            plt.pause(0.01)
 
         # update loop variable
         if sp_ind < traj_global.shape[0]-1 and norm(robot1.sp_global - centroid) < params.max_sp_dist: sp_ind += 1
-    print("Collision tick count: ", collision_count)
-    print("Centroid low stability count: ", centroid_low_stability)
 
 
 
@@ -347,8 +297,6 @@ if params.postprocessing:
 
 # close windows if Enter-button is pressed
 plt.draw()
-# plt.savefig('result.png')
-# plt.pause(0.1)
-# input('Hit Enter to close')
-
+plt.pause(0.1)
+input('Hit Enter to close')
 plt.close('all')

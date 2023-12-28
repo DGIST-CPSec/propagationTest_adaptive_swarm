@@ -255,13 +255,16 @@ def postprocessing(metrics, params, visualize=1):
         plt.plot(metrics.t_array, l*np.ones_like(metrics.t_array), '--', label='Default distance', linewidth=2)
         plt.plot(metrics.t_array, metrics.mean_dists_array, label='Mean inter-robots distance', color='r', linewidth=2)
         plt.plot(metrics.t_array, metrics.max_dists_array, label='Max inter-robots distance', color='k', linewidth=2)
+        plt.plot(metrics.t_array, metrics.min_dists_array, label='Min inter-robots distance', color='b', linewidth=2)
+
         plt.grid()
         plt.xlabel('Time, [s]')
         plt.ylabel('Distance, [m]')
         plt.legend()
 
         fig = plt.figure(figsize=(10,10))
-        ax = fig.gca(projection='3d')
+        # ax = fig.gca(projection='3d')
+        ax = fig.add_subplot(111, projection='3d')
         # plt.title ('Repulsive Potential')
         # start = meters2grid(xy_start); #ax.scatter3D(start[0], start[1], 100, color='r', s=100, zorder=10)
         # goal = meters2grid(xy_goal); #ax.scatter3D(goal[0], goal[1], 100, color='g', s=100, zorder=10)
