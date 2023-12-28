@@ -9,6 +9,7 @@ Autonumous navigation of robots formation with Layered path-planner:
 import numpy as np
 from numpy.linalg import norm
 import matplotlib.pyplot as plt
+import sys
 
 from tools import *
 from rrt import *
@@ -32,7 +33,7 @@ class Params:
         self.animate_rrt = 0 # show RRT construction, set 0 to reduce time of the RRT algorithm
         self.visualize = 1 # show robots movement
         self.postprocessing = 1 # process and visualize the simulated experiment data after the simulation
-        self.savedata = 1 # save postprocessing metrics to the XLS-file
+        self.savedata = 0 # save postprocessing metrics to the XLS-file
         self.maxiters = 500 # max number of samples to build the RRT
         self.goal_prob = 0.05 # with probability goal_prob, sample the goal
         self.minDistGoal = 0.25 # [m], min distance os samples from goal to add goal node to the RRT
@@ -60,7 +61,7 @@ class Robot:
         self.leader = False
         self.brown_noise = np.array([0.0, 0.0])
 
-    def local_planner(self, obstacles, params, tick, what_noise, attacked = False):
+    def local_planner(self, obstacles, params, tick, what_noise, xydiff, attacked = False):
         """
         This function computes the next_point
         given current location (self.sp) and potential filed function, f.
@@ -86,7 +87,7 @@ class Robot:
                 self.sp += np.random.normal(mean_noise, stddev_noise, size=2)
             if what_noise == 'sin' and (tick % 30 <= 10):
                 sin_noise_x = noise_amplitude * np.sin(noise_frequency * tick)
-                sin_noise_y = noise_amplitude * np.sin(noise_frequency * tick + np.pi/2)
+                sin_noise_y = noise_amplitude * np.sin(noise_frequency * tick + xydiff)
                 # TODO: x,y noise difference should be from random or input value
                 self.sp += np.array([sin_noise_x, sin_noise_y])
             if what_noise == 'brownian':
@@ -118,28 +119,33 @@ init_fonts(small=12, medium=16, big=26)
 params = Params()
 xy_start = np.array([1.2, 1.0])
 xy_goal =  np.array([-2.2, -2.2])
+# np.random.seed(207)
 # xy_goal =  np.array([1.3, 1.0])
 
 # Obstacles map construction
-obstacles = [
-              # bugtrap
-              np.array([[0.5, 0], [2.5, 0.], [2.5, 0.3], [0.5, 0.3]]),
-              np.array([[0.5, 0.3], [0.8, 0.3], [0.8, 1.5], [0.5, 1.5]]),
-              # np.array([[0.5, 1.5], [1.5, 1.5], [1.5, 1.8], [0.5, 1.8]]),
-              # angle
-              np.array([[-2, -2], [-0.5, -2], [-0.5, -1.8], [-2, -1.8]]),
-              np.array([[-0.7, -1.8], [-0.5, -1.8], [-0.5, -0.8], [-0.7, -0.8]]),
-              # walls
-              np.array([[-2.5, -2.5], [2.5, -2.5], [2.5, -2.47], [-2.5, -2.47]]), # comment this for better 3D visualization
-              np.array([[-2.5, 2.47], [2.5, 2.47], [2.5, 2.5], [-2.5, 2.5]]),
-              np.array([[-2.5, -2.47], [-2.47, -2.47], [-2.47, 2.47], [-2.5, 2.47]]),
-              np.array([[2.47, -2.47], [2.5, -2.47], [2.5, 2.47], [2.47, 2.47]]), # comment this for better 3D visualization
+# obstacles = [
+#               # bugtrap
+#               np.array([[0.5, 0], [2.5, 0.], [2.5, 0.3], [0.5, 0.3]]),
+#               np.array([[0.5, 0.3], [0.8, 0.3], [0.8, 1.5], [0.5, 1.5]]),
+#               # np.array([[0.5, 1.5], [1.5, 1.5], [1.5, 1.8], [0.5, 1.8]]),
+#               # angle
+#             #   np.array([[-2, -2], [-1.8, -2], [-1.8, -0.5], [-2, -0.5]]),
+#               np.array([[-0.2, -2], [0, -2], [0, 1], [-0.2, 1]]) + np.array([np.random.uniform(-2, 0), np.random.uniform(0, 1)]),
+#             # move between (0~0.5,0~3) randomly
+#               np.array([[-2, -2], [-0.5, -2], [-0.5, -1.8], [-2, -1.8]]) + np.array([np.random.uniform(0, 0.5), np.random.uniform(0, 3)]),
+#             #   move between (-1.3~0.5, 0~1.2) randomly
+#               np.array([[-0.7, -1.8], [-0.5, -1.8], [-0.5, -0.8], [-0.7, -0.8]]) + np.array([np.random.uniform(-1.3, 0.5), np.random.uniform(0, 1.2)]),
+#               # walls
+#               np.array([[-2.5, -2.5], [2.5, -2.5], [2.5, -2.47], [-2.5, -2.47]]), # comment this for better 3D visualization
+#               np.array([[-2.5, 2.47], [2.5, 2.47], [2.5, 2.5], [-2.5, 2.5]]),
+#               np.array([[-2.5, -2.47], [-2.47, -2.47], [-2.47, 2.47], [-2.5, 2.47]]),
+#               np.array([[2.47, -2.47], [2.5, -2.47], [2.5, 2.47], [2.47, 2.47]]), # comment this for better 3D visualization
 
-              # moving obstacle
-              np.array([[-2.3, 2.0], [-2.1, 2.0], [-2.1, 2.2], [-2.3, 2.2]]),
-              np.array([[2.3, -2.3], [2.4, -2.3], [2.4, -2.2], [2.3, -2.2]]),
-              np.array([[0.0, -2.3], [0.2, -2.3], [0.2, -2.2], [0.0, -2.2]]),
-            ]
+#               # moving obstacle
+#               np.array([[-2.3, 2.0], [-2.1, 2.0], [-2.1, 2.2], [-2.3, 2.2]]),
+#               np.array([[2.3, -2.3], [2.4, -2.3], [2.4, -2.2], [2.3, -2.2]]),
+#               np.array([[0.0, -2.3], [0.2, -2.3], [0.2, -2.2], [0.0, -2.2]]),
+#             ]
 """" Narrow passage """
 # passage_width = 0.3
 # passage_location = 0.0
@@ -215,15 +221,54 @@ noise_frequency = 0.5  # 노이즈의 주파수
 #brownian
 brown_noise_amp = 0.01
 
-attack_leader = False
-follower_selection = 2
-attack_follower = False
+victim_drone = -1 # -1: no attack, 0: attack leader, 1~: attack the victim drone
 
 noise = ['standard', 'sin', 'brownian']
 what_noise = noise[1]
 
 # Layered Motion Planning: RRT (global) + Potential Field (local)
 if __name__ == '__main__':
+    # from arguments, get the victim drone number
+    # if victim drone number is -1, then no attack
+    # if victim drone number is 0, then attack leader
+    # else, attack the victim drone
+    print(sys.argv)
+    if len(sys.argv) > 2:
+        # selecting victim drone
+        victim_drone = int(sys.argv[1])
+        # seed for creating walls
+        seedno = int(sys.argv[2])
+        # atck_xy_diff: difference between the attacking sine wave to x and y.  angle will be given as (x)*15 degree
+        atck_xy_diff = int(sys.argv[3]) * 30
+        np.random.seed(seedno)
+    filename = 'result_atck-'+str(victim_drone)+'_seed-'+str(seedno)+'_'+sys.argv[3]
+
+    obstacles = [
+              # bugtrap
+              np.array([[0.5, 0], [2.5, 0.], [2.5, 0.3], [0.5, 0.3]]),
+              np.array([[0.5, 0.3], [0.8, 0.3], [0.8, 1.5], [0.5, 1.5]]),
+              # np.array([[0.5, 1.5], [1.5, 1.5], [1.5, 1.8], [0.5, 1.8]]),
+              # angle
+            #   np.array([[-2, -2], [-1.8, -2], [-1.8, -0.5], [-2, -0.5]]),
+              np.array([[-0.2, -2], [0, -2], [0, 1], [-0.2, 1]]) + np.array([np.random.uniform(-2, 0), np.random.uniform(0, 1)]),
+            # move between (0~0.5,0~3) randomly
+              np.array([[-2, -2], [-0.5, -2], [-0.5, -1.8], [-2, -1.8]]) + np.array([np.random.uniform(0, 0.5), np.random.uniform(0, 3)]),
+            #   move between (-1.3~0.5, 0~1.2) randomly
+              np.array([[-0.7, -1.8], [-0.5, -1.8], [-0.5, -0.8], [-0.7, -0.8]]) + np.array([np.random.uniform(-1.3, 0.5), np.random.uniform(0, 1.2)]),
+              # walls
+              np.array([[-2.5, -2.5], [2.5, -2.5], [2.5, -2.47], [-2.5, -2.47]]), # comment this for better 3D visualization
+              np.array([[-2.5, 2.47], [2.5, 2.47], [2.5, 2.5], [-2.5, 2.5]]),
+              np.array([[-2.5, -2.47], [-2.47, -2.47], [-2.47, 2.47], [-2.5, 2.47]]),
+              np.array([[2.47, -2.47], [2.5, -2.47], [2.5, 2.47], [2.47, 2.47]]), # comment this for better 3D visualization
+
+              # moving obstacle
+              np.array([[-2.3, 2.0], [-2.1, 2.0], [-2.1, 2.2], [-2.3, 2.2]]),
+              np.array([[2.3, -2.3], [2.4, -2.3], [2.4, -2.2], [2.3, -2.2]]),
+              np.array([[0.0, -2.3], [0.2, -2.3], [0.2, -2.2], [0.0, -2.2]]),
+            ]
+    
+    
+    
     # collision counter
     collision_count = 0
     centroid_low_stability = 0
@@ -260,14 +305,14 @@ if __name__ == '__main__':
         dist_to_goal = norm(robot1.sp - xy_goal)
         if dist_to_goal < params.goal_tolerance: # [m]
             print('Goal is reached')
-            plt.savefig('./resultimgs/'+str(time.time())+'.png')
+            plt.savefig('./result/imgs/'+filename+'.png')
             break
         if len(obstacles)>2: obstacles = move_obstacles(obstacles, params) # change poses of some obstacles on the map
 
         # leader's setpoint from global planner
         robot1.sp_global = traj_global[sp_ind,:]
         # correct leader's pose with local planner
-        robot1.local_planner(obstacles, params, what_noise, attack_leader)
+        robot1.local_planner(obstacles, params, what_noise, atck_xy_diff, (victim_drone == 0))
 
         """ adding following robots in the swarm """
         # formation poses from global planner
@@ -279,10 +324,7 @@ if __name__ == '__main__':
             robots_obstacles = poses2polygons( robots_obstacles_sp ) # each drone is defined as a small cube for inter-robots collision avoidance
             obstacles1 = np.array(obstacles + robots_obstacles) # combine exisiting obstacles on the map with other robots[for each i: i!=p] in formation
             # follower robot's position correction with local planner
-            if p+1 == follower_selection and attack_follower:
-                robots[p+1].local_planner(obstacles1, params, tick, what_noise, attack_follower)
-            else :
-                robots[p+1].local_planner(obstacles1, params, tick, what_noise)
+            robots[p+1].local_planner(obstacles1, params, tick, what_noise, atck_xy_diff, (victim_drone == p+1))
             followers_sp[p] = robots[p+1].sp
         tick += 1
         
