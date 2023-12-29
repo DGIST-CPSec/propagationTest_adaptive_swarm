@@ -31,7 +31,7 @@ def move_obstacles(obstacles, params):
 class Params:
     def __init__(self):
         self.animate_rrt = 0 # show RRT construction, set 0 to reduce time of the RRT algorithm
-        self.visualize = 1 # show robots movement
+        self.visualize = 0 # show robots movement
         self.postprocessing = 1 # process and visualize the simulated experiment data after the simulation
         self.savedata = 0 # save postprocessing metrics to the XLS-file
         self.maxiters = 500 # max number of samples to build the RRT
@@ -305,7 +305,7 @@ if __name__ == '__main__':
         dist_to_goal = norm(robot1.sp - xy_goal)
         if dist_to_goal < params.goal_tolerance: # [m]
             print('Goal is reached')
-            plt.savefig('./result/imgs/'+filename+'.png')
+            # plt.savefig('./result/imgs/'+filename+'.png')
             break
         if len(obstacles)>2: obstacles = move_obstacles(obstacles, params) # change poses of some obstacles on the map
 
@@ -384,7 +384,7 @@ if params.postprocessing:
     metrics.centroid_path_length = path_length(metrics.centroid_path)
     for robot in robots: metrics.robots.append( robot )
 
-    postprocessing(metrics, params, visualize=1)
+    postprocessing(metrics, params, visualize=0)
     if params.savedata: save_data(metrics)
 
 # close windows if Enter-button is pressed
