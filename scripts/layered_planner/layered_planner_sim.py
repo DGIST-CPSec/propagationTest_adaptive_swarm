@@ -100,19 +100,19 @@ class Robot:
 def visualize2D():
     draw_map(obstacles)
     draw_gradient(robots[1].U) if params.num_robots>1 else draw_gradient(robots[0].U)
-    for robot in robots: plt.plot(robot.sp[0], robot.sp[1], '^', color='blue', markersize=10, zorder=15) # robots poses
+    # for robot in robots: plt.plot(robot.sp[0], robot.sp[1], '^', color='blue', markersize=10, zorder=15) # robots poses
     robots_poses = []
     for robot in robots: robots_poses.append(robot.sp)
     robots_poses.sort(key=lambda p: atan2(p[1]-centroid[1],p[0]-centroid[0]))
-    plt.gca().add_patch( Polygon(robots_poses, color='yellow') )
-    plt.plot(centroid[0], centroid[1], '*', color='b', markersize=10, label='Centroid position')
-    plt.plot(robot1.route[:,0], robot1.route[:,1], linewidth=2, color='green', label="Leader's path", zorder=10)
-    for robot in robots[1:]: plt.plot(robot.route[:,0], robot.route[:,1], '--', linewidth=2, color='green', zorder=10)
-    plt.plot(P[:,0], P[:,1], linewidth=3, color='orange', label='Global planner path')
-    plt.plot(traj_global[sp_ind,0], traj_global[sp_ind,1], 'X', color='blue', markersize=7, label='Global planner setpoint')
-    plt.plot(xy_start[0],xy_start[1],'X',color='red', markersize=20, label='start')
-    plt.plot(xy_goal[0], xy_goal[1],'X',color='green', markersize=20, label='goal')
-    plt.legend()
+    # plt.gca().add_patch( Polygon(robots_poses, color='yellow') )
+    # plt.plot(centroid[0], centroid[1], '*', color='b', markersize=10, label='Centroid position')
+    # plt.plot(robot1.route[:,0], robot1.route[:,1], linewidth=2, color='green', label="Leader's path", zorder=10)
+    # for robot in robots[1:]: plt.plot(robot.route[:,0], robot.route[:,1], '--', linewidth=2, color='green', zorder=10)
+    # plt.plot(P[:,0], P[:,1], linewidth=3, color='orange', label='Global planner path')
+    # plt.plot(traj_global[sp_ind,0], traj_global[sp_ind,1], 'X', color='blue', markersize=7, label='Global planner setpoint')
+    # plt.plot(xy_start[0],xy_start[1],'X',color='red', markersize=20, label='start')
+    # plt.plot(xy_goal[0], xy_goal[1],'X',color='green', markersize=20, label='goal')
+    # plt.legend()
 
 # Initialization
 init_fonts(small=12, medium=16, big=26)
@@ -172,9 +172,7 @@ def is_point_in_obstacle(point, obstacle):
     """
     x = point[0]; y = point[1]
     x1 = obstacle[0,0]; y1 = obstacle[0,1]
-    x2 = obstacle[1,0]; y2 = obstacle[1,1]
-    x3 = obstacle[2,0]; y3 = obstacle[2,1]
-    x4 = obstacle[3,0]; y4 = obstacle[3,1]
+    x2 = obstacle[1,0]; y4 = obstacle[3,1]
     if x1<=x<=x2 and y1<=y<=y4: return True
     else: return False
 
@@ -273,10 +271,10 @@ if __name__ == '__main__':
     collision_count = 0
     centroid_low_stability = 0
 
-    fig2D = plt.figure(figsize=(10,10))
-    draw_map(obstacles)
-    plt.plot(xy_start[0],xy_start[1],'o',color='red', markersize=20, label='start')
-    plt.plot(xy_goal[0], xy_goal[1],'o',color='green', markersize=20, label='goal')
+    # fig2D = plt.figure(figsize=(10,10))
+    # draw_map(obstacles)
+    # plt.plot(xy_start[0],xy_start[1],'o',color='red', markersize=20, label='start')
+    # plt.plot(xy_goal[0], xy_goal[1],'o',color='green', markersize=20, label='goal')
 
     P_long = rrt_path(obstacles, xy_start, xy_goal, params)
     print('Path Shortenning...')
@@ -284,7 +282,7 @@ if __name__ == '__main__':
 
     traj_global = waypts2setpts(P, params)
     P = np.vstack([P, xy_start])
-    plt.plot(P[:,0], P[:,1], linewidth=3, color='orange', label='Global planner path')
+    # plt.plot(P[:,0], P[:,1], linewidth=3, color='orange', label='Global planner path')
     # plt.pause(0.5)
 
     sp_ind = 0
@@ -361,11 +359,11 @@ if __name__ == '__main__':
         # print("Memory: ", memory_usage())
 
         # visualization
-        if params.visualize:
-            plt.cla()
-            visualize2D()        
+        # if params.visualize:
+            # plt.cla()
+            # visualize2D()        
 
-            plt.draw()
+            # plt.draw()
             # plt.pause(0.01)
 
         # update loop variable
@@ -385,12 +383,12 @@ if params.postprocessing:
     for robot in robots: metrics.robots.append( robot )
 
     postprocessing(metrics, params, visualize=0)
-    if params.savedata: save_data(metrics)
+    # if params.savedata: save_data(metrics)
 
 # close windows if Enter-button is pressed
-plt.draw()
+# plt.draw()
 # plt.savefig('result.png')
 # plt.pause(0.1)
 # input('Hit Enter to close')
 
-plt.close('all')
+# plt.close('all')
