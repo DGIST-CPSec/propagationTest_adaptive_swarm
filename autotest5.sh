@@ -1,4 +1,4 @@
-for num2 in {0..999}
+for num2 in {300..399}
 do
     for num1 in 5
     do

@@ -1,6 +1,6 @@
-for num2 in {0..999}
+for num2 in {300..399}
 do
-    for num1 in 9
+    for num1 in -1
     do
         for num3 in {0..6}
         do
