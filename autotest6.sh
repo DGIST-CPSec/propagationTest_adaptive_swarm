@@ -1,4 +1,4 @@
-for num2 in {360..399}
+for num2 in {360..380}
 do
     for num1 in 6
     do
