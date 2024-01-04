@@ -87,7 +87,7 @@ class Robot:
                 self.sp += np.random.normal(mean_noise, stddev_noise, size=2)
             if what_noise == 'sin' and (tick % 30 <= 10):
                 sin_noise_x = noise_amplitude * np.sin(noise_frequency * tick)
-                sin_noise_y = noise_amplitude * np.sin(noise_frequency * tick + xydiff)
+                sin_noise_y = noise_amplitude * np.sin(noise_frequency * tick + xydiff/180*np.pi)
                 # TODO: x,y noise difference should be from random or input value
                 self.sp += np.array([sin_noise_x, sin_noise_y])
             if what_noise == 'brownian':
