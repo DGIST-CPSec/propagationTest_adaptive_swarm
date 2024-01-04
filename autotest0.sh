@@ -1,4 +1,4 @@
-for num2 in {300..399}
+for num2 in {360..399}
 do
     for num1 in 0
     do
